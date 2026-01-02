@@ -1,6 +1,6 @@
 # Voice Agent - AI-Powered Voice Assistant
 
-A production-ready AI voice agent system built with **Deepgram**, **Twilio**, **Convex**, and **LLM integrations** (Gemini, OpenAI, Groq). This system enables businesses to deploy intelligent voice assistants that can handle customer calls, answer questions from a knowledge base, and perform actions like taking orders or booking appointments.
+A production-ready AI voice agent system built with **Deepgram Voice Agent**, **Twilio**, and **Convex RAG**. This system enables businesses to deploy intelligent voice assistants that can handle customer calls, answer questions from a knowledge base, and perform actions like taking orders or booking appointments.
 
 ## 🌟 Features
 
@@ -148,18 +148,16 @@ A production-ready AI voice agent system built with **Deepgram**, **Twilio**, **
 
 | Variable | Description |
 |----------|-------------|
-| `DEEPGRAM_API_KEY` | Deepgram API key for voice agent |
+| `DEEPGRAM_API_KEY` | Deepgram API key for voice agent (required) |
 | `TWILIO_ACCOUNT_SID` | Twilio account SID |
 | `TWILIO_AUTH_TOKEN` | Twilio auth token |
 | `TWILIO_PHONE_NUMBER` | Your Twilio phone number |
 | `WEBSOCKET_URL` | WebSocket server URL (ngrok in dev) |
-| `CONVEX_URL` | Convex deployment URL |
+| `CONVEX_URL` | Convex deployment URL (required) |
 | `CONVEX_DEPLOY_KEY` | Convex deployment key |
-| `GEMINI_API_KEY` | Google Gemini API key |
-| `OPENAI_API_KEY` | OpenAI API key (optional) |
-| `GROQ_API_KEY` | Groq API key (optional) |
+| `OPENAI_API_KEY` | OpenAI API key for embeddings (required by Convex RAG) |
+| `GROQ_API_KEY` | Groq API key for LLM (powers voice agent responses) |
 | `LLAMA_CLOUD_API_KEY` | LlamaParse API key for document parsing |
-| `HF_TOKEN` | Hugging Face token for embeddings |
 
 ### Agent Configuration
 
@@ -231,8 +229,8 @@ uv run python scripts/create_tenant_simple.py
 ### Ingestion Process
 1. Document parsed by LlamaParse
 2. Text cleaned and chunked (400 tokens, 150 overlap)
-3. Embeddings generated via Hugging Face BGE-M3
-4. Stored in Convex vector database
+3. Embeddings generated via OpenAI text-embedding-3-small (1536 dimensions)
+4. Stored in Convex vector database with semantic search
 
 ### Search
 - Semantic search with cosine similarity
@@ -252,7 +250,8 @@ This project is proprietary software.
 
 ## 🙏 Acknowledgments
 
-- [Deepgram](https://deepgram.com/) - Voice AI platform
-- [Twilio](https://twilio.com/) - Cloud communications
-- [Convex](https://convex.dev/) - Backend database
+- [Deepgram](https://deepgram.com/) - Voice AI & Agent platform
+- [Twilio](https://twilio.com/) - Cloud telephony
+- [Convex](https://convex.dev/) - Backend database & RAG
+- [OpenAI](https://openai.com/) - Embeddings for semantic search
 - [LlamaParse](https://www.llamaindex.ai/) - Document parsing
