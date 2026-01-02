@@ -1,0 +1,530 @@
+{
+	"info": {
+		"_postman_id": "voice-agent-api-2024",
+		"name": "Voice Agent API - Complete Testing",
+		"description": "Complete Postman collection for testing Voice Agent API with ConvexDB multi-tenant analytics",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Health & System",
+			"item": [
+				{
+					"name": "Root - Service Info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							]
+						},
+						"description": "Get basic service information"
+					}
+				},
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Detailed health check with database status, active sessions, and service configuration"
+					}
+				},
+				{
+					"name": "System Info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/info",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"info"
+							]
+						},
+						"description": "Get system configuration details"
+					}
+				}
+			]
+		},
+		{
+			"name": "Session Management",
+			"item": [
+				{
+					"name": "Create Restaurant Agent Session",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set('session_id', jsonData.session_id);",
+									"    pm.environment.set('websocket_url', jsonData.websocket_url);",
+									"    console.log('Session ID:', jsonData.session_id);",
+									"    console.log('WebSocket URL:', jsonData.websocket_url);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"call_type\": \"inbound\",\n  \"phone_number\": \"+1234567890\",\n  \"config\": {\n    \"business\": {\n      \"name\": \"Kaanchi Cuisine Restaurant\",\n      \"type\": \"restaurant\",\n      \"description\": \"Premium Indian restaurant with authentic cuisine\"\n    },\n    \"language\": \"en-US\",\n    \"agent_prompt\": \"You are a friendly restaurant assistant for Kaanchi Cuisine. Help customers with menu inquiries, take orders, and make reservations. Be warm and professional.\",\n    \"functions\": [\n      {\n        \"name\": \"get_menu\",\n        \"description\": \"Get the restaurant menu with prices\",\n        \"parameters\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"category\": {\n              \"type\": \"string\",\n              \"description\": \"Menu category: beverages, veg starters, non-veg starters, main course, desserts\"\n            }\n          }\n        }\n      },\n      {\n        \"name\": \"place_order\",\n        \"description\": \"Place a food order\",\n        \"parameters\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"items\": {\n              \"type\": \"array\",\n              \"items\": {\n                \"type\": \"object\",\n                \"properties\": {\n                  \"name\": {\"type\": \"string\"},\n                  \"quantity\": {\"type\": \"integer\"}\n                }\n              }\n            },\n            \"phone_number\": {\"type\": \"string\"},\n            \"address\": {\"type\": \"string\"}\n          },\n          \"required\": [\"items\", \"phone_number\"]\n        }\n      },\n      {\n        \"name\": \"make_reservation\",\n        \"description\": \"Make a table reservation\",\n        \"parameters\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"name\": {\"type\": \"string\"},\n            \"phone_number\": {\"type\": \"string\"},\n            \"party_size\": {\"type\": \"integer\"},\n            \"date\": {\"type\": \"string\"},\n            \"time\": {\"type\": \"string\"}\n          },\n          \"required\": [\"name\", \"phone_number\", \"party_size\", \"date\", \"time\"]\n        }\n      }\n    ]\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/sessions/create",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sessions",
+								"create"
+							]
+						},
+						"description": "Create a new voice agent session for restaurant. Returns session_id and websocket_url to connect."
+					}
+				},
+				{
+					"name": "Create Pharmacy Agent Session",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set('session_id', jsonData.session_id);",
+									"    pm.environment.set('websocket_url', jsonData.websocket_url);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"call_type\": \"inbound\",\n  \"phone_number\": \"+1234567890\",\n  \"config\": {\n    \"business\": {\n      \"name\": \"HealthPlus Pharmacy\",\n      \"type\": \"pharmacy\",\n      \"description\": \"24/7 pharmacy services\"\n    },\n    \"language\": \"en-US\",\n    \"agent_prompt\": \"You are a helpful pharmacy assistant. Help customers check medication availability, place orders, and provide basic information. Always recommend consulting a doctor for medical advice.\",\n    \"functions\": [\n      {\n        \"name\": \"check_medication_availability\",\n        \"description\": \"Check if a medication is in stock\",\n        \"parameters\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"medication_name\": {\"type\": \"string\"}\n          },\n          \"required\": [\"medication_name\"]\n        }\n      },\n      {\n        \"name\": \"place_prescription_order\",\n        \"description\": \"Place an order for prescription medications\",\n        \"parameters\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"prescription_number\": {\"type\": \"string\"},\n            \"phone_number\": {\"type\": \"string\"},\n            \"pickup_time\": {\"type\": \"string\"}\n          },\n          \"required\": [\"prescription_number\", \"phone_number\"]\n        }\n      }\n    ]\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/sessions/create",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sessions",
+								"create"
+							]
+						},
+						"description": "Create pharmacy agent session"
+					}
+				},
+				{
+					"name": "Get Session Details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/sessions/{{session_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sessions",
+								"{{session_id}}"
+							]
+						},
+						"description": "Get details of a specific session"
+					}
+				},
+				{
+					"name": "Get Session Config",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/sessions/{{session_id}}/config",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sessions",
+								"{{session_id}}",
+								"config"
+							]
+						},
+						"description": "Get the full configuration of a session"
+					}
+				},
+				{
+					"name": "List All Sessions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/sessions?limit=50&offset=0",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sessions"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "50"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								},
+								{
+									"key": "status",
+									"value": "active",
+									"disabled": true
+								},
+								{
+									"key": "business_name",
+									"value": "Kaanchi Cuisine Restaurant",
+									"disabled": true
+								}
+							]
+						},
+						"description": "List all sessions with optional filters"
+					}
+				},
+				{
+					"name": "Delete Session",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/sessions/{{session_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sessions",
+								"{{session_id}}"
+							]
+						},
+						"description": "Delete/terminate a session"
+					}
+				}
+			]
+		},
+		{
+			"name": "Analytics & Metrics",
+			"item": [
+				{
+					"name": "Get Today's Analytics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/analytics",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"analytics"
+							]
+						},
+						"description": "Get today's call statistics: total calls, completed, failed, average duration, active calls"
+					}
+				},
+				{
+					"name": "Get Recent Call Sessions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/analytics/sessions?limit=50",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"analytics",
+								"sessions"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "50"
+								}
+							]
+						},
+						"description": "Get list of recent call sessions from database"
+					}
+				},
+				{
+					"name": "Get Call Session Details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/analytics/sessions/{{session_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"analytics",
+								"sessions",
+								"{{session_id}}"
+							]
+						},
+						"description": "Get detailed call analytics including full conversation transcript and function calls"
+					}
+				},
+				{
+					"name": "Get Active Calls Count",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/analytics/active",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"analytics",
+								"active"
+							]
+						},
+						"description": "Get count of currently active calls"
+					}
+				},
+				{
+					"name": "Get Agent Type Breakdown",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/analytics/breakdown?days=7",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"analytics",
+								"breakdown"
+							],
+							"query": [
+								{
+									"key": "days",
+									"value": "7"
+								}
+							]
+						},
+						"description": "Get breakdown of calls by agent type for last N days"
+					}
+				},
+				{
+					"name": "Get Sessions by Date Range",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/analytics/sessions/range?start_date=2024-01-01T00:00:00&end_date=2024-12-31T23:59:59",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"analytics",
+								"sessions",
+								"range"
+							],
+							"query": [
+								{
+									"key": "start_date",
+									"value": "2024-01-01T00:00:00"
+								},
+								{
+									"key": "end_date",
+									"value": "2024-12-31T23:59:59"
+								}
+							]
+						},
+						"description": "Get all call sessions within a date range"
+					}
+				}
+			]
+		},
+		{
+			"name": "Template Configurations",
+			"item": [
+				{
+					"name": "List All Templates",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/templates",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"templates"
+							]
+						},
+						"description": "Get all available agent templates (Restaurant, Pharmacy, Hotel, etc.)"
+					}
+				},
+				{
+					"name": "Get Restaurant Template",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/templates/restaurant",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"templates",
+								"restaurant"
+							]
+						},
+						"description": "Get restaurant agent template configuration"
+					}
+				},
+				{
+					"name": "Get Pharmacy Template",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/templates/pharmacy",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"templates",
+								"pharmacy"
+							]
+						},
+						"description": "Get pharmacy agent template configuration"
+					}
+				},
+				{
+					"name": "Get Hotel Template",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/templates/hotel",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"templates",
+								"hotel"
+							]
+						},
+						"description": "Get hotel agent template configuration"
+					}
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "session_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "websocket_url",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

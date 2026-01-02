@@ -1,0 +1,25 @@
+fastapi
+uvicorn
+python-dotenv
+websockets
+deepgram-sdk
+twilio
+httpx
+pydantic
+pydantic-settings
+jinja2
+python-multipart
+convex
+
+
+pytest
+
+# AI/ML APIs
+google-cloud-speech
+google-cloud-aiplatform
+google-generativeai>=0.3.0  # Gemini API for embeddings and LLM
+groq>=1.0.0          # Groq API for Whisper STT, Orpheus TTS, and Llama LLM
+openai>=2.0.0        # OpenAI API for future TTS (when billing is setup)
+
+# Document Processing & Knowledge Base
+llama-cloud-services>=0.1.0  # LlamaParse for document extraction from PDFs, images, etc.

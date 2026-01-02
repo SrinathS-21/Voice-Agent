@@ -1,0 +1,24 @@
+{
+    "name": "voiceagent-convex",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Convex DB functions for Voice Agent",
+    "scripts": {
+        "convex:dev": "convex dev",
+        "convex:deploy": "convex deploy",
+        "convex:push": "convex deploy"
+    },
+    "devDependencies": {
+        "convex": "^1.17.0",
+        "typescript": "^5.0.0"
+    },
+    "dependencies": {
+        "@ai-sdk/openai": "^2.0.0",
+        "@convex-dev/agent": "^0.3.2",
+        "@convex-dev/rag": "^0.6.1",
+        "@convex-dev/workpool": "^0.3.0",
+        "ai": "^5.0.29",
+        "convex-helpers": "^0.1.108",
+        "zod": "^4.3.2"
+    }
+}

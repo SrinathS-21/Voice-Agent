@@ -1,0 +1,146 @@
+{
+  "type": "Settings",
+  "audio": {
+    "input": {
+      "encoding": "mulaw",
+      "sample_rate": 8000
+    },
+    "output": {
+      "encoding": "mulaw",
+      "sample_rate": 8000,
+      "container": "none"
+    }
+  },
+  "agent": {
+    "language": "en",
+    "listen": {
+      "provider": {
+        "type": "groq",
+        "model": "whisper-large-v3-turbo",
+        "language": "en"
+      }
+    },
+    "think": {
+      "provider": {
+        "type": "groq",
+        "model": "llama-3.3-70b-versatile",
+        "temperature": 0.7
+      },
+      "prompt": "You are a helpful phone assistant. Be BRIEF. No markdown/emojis. Flow: 1) Listen to request 2) Use search_items for product/menu queries 3) Confirm actions before executing. One response per turn.",
+      "functions": [
+        {
+          "name": "search_items",
+          "description": "Search for items, products, or information. Use when customer asks about products, menu items, services, pricing, or availability.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string",
+                "description": "The search query - what the customer is looking for. Examples: 'vegetarian options', 'chicken dishes', 'spicy food'"
+              },
+              "category": {
+                "type": "string",
+                "description": "Optional category filter to narrow results"
+              }
+            },
+            "required": ["query"]
+          }
+        },
+        {
+          "name": "get_business_info",
+          "description": "Get business information like hours, location, contact info, policies. Use when customer asks about hours, address, delivery, payment methods.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "info_type": {
+                "type": "string",
+                "enum": ["hours", "location", "contact", "policies", "features"],
+                "description": "Type of information requested"
+              }
+            },
+            "required": ["info_type"]
+          }
+        },
+        {
+          "name": "place_order",
+          "description": "Place an order. CRITICAL: ONLY call after customer confirms. Flow: 1) Customer says items 2) You confirm items+price 3) Get customer name 4) Confirm total and ask 'Should I place that?' 5) Wait for yes/confirm 6) THEN call this.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "customer_name": {
+                "type": "string",
+                "description": "Customer's ACTUAL name - never use placeholders"
+              },
+              "items": {
+                "type": "string",
+                "description": "Comma-separated list of items to order"
+              }
+            },
+            "required": ["customer_name", "items"]
+          }
+        },
+        {
+          "name": "lookup_order",
+          "description": "Look up an existing order by ID. Use when customer asks about order status or provides an order number.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "order_id": {
+                "type": "integer",
+                "description": "The order ID number"
+              }
+            },
+            "required": ["order_id"]
+          }
+        },
+        {
+          "name": "make_appointment",
+          "description": "Schedule an appointment or reservation. Collect: customer name, date, time, and additional details (party size, service type, etc.).",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "customer_name": {
+                "type": "string",
+                "description": "Customer's name"
+              },
+              "date": {
+                "type": "string",
+                "description": "Date in YYYY-MM-DD or natural format like 'tomorrow', 'next Friday'"
+              },
+              "time": {
+                "type": "string",
+                "description": "Time (e.g., '7:00 PM', '19:00')"
+              },
+              "details": {
+                "type": "string",
+                "description": "Party size, service type, or additional details"
+              }
+            },
+            "required": ["customer_name", "date", "time"]
+          }
+        },
+        {
+          "name": "end_call",
+          "description": "End the call when user says goodbye or explicitly requests to end.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "reason": {
+                "type": "string",
+                "description": "Reason for ending (optional)"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "speak": {
+      "provider": {
+        "type": "groq",
+        "model": "canopylabs/orpheus-v1-english",
+        "voice": "hannah"
+      }
+    },
+    "greeting": "Hello! How can I help you today?"
+  }
+}

@@ -1,0 +1,141 @@
+{
+  "info": {
+    "name": "VoiceAgent E2E",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "End-to-end test collection for VoiceAgent: create agent, attach tool, bind number, outbound session, and inbound webhook simulation."
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000" },
+    { "key": "tenant_id", "value": "tenant_123" },
+    { "key": "agent_id", "value": "" },
+    { "key": "phone_number", "value": "+15005550006" },
+    { "key": "to_number", "value": "+15005550007" },
+    { "key": "api_key", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Create Agent",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "{{api_key}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tenant_id\": \"{{tenant_id}}\",\n  \"name\": \"Test Agent\",\n  \"system_prompt\": \"You are a helpful restaurant assistant.\",\n  \"config\": {\n    \"functions\": [],\n    \"speak\": { \"voice\": \"alloy\" }\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/agents/create",
+          "host": ["{{base_url}}"],
+          "path": ["api","v1","agents","create"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Attach Clover Tool to Agent",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "{{api_key}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tenant_id\": \"{{tenant_id}}\",\n  \"agent_id\": \"{{agent_id}}\",\n  \"tool\": \"clover\",\n  \"credentials\": {\n    \"client_id\": \"CL_CLIENT\",\n    \"client_secret\": \"CL_SECRET\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/agents/attach_tool",
+          "host": ["{{base_url}}"],
+          "path": ["api","v1","agents","attach_tool"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Bind Number to Agent",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "{{api_key}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tenant_id\": \"{{tenant_id}}\",\n  \"agent_id\": \"{{agent_id}}\",\n  \"phone_number\": \"{{phone_number}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/agents/bind_number",
+          "host": ["{{base_url}}"],
+          "path": ["api","v1","agents","bind_number"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Outbound Session (Create from Number)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "{{api_key}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tenant_id\": \"{{tenant_id}}\",\n  \"from_number\": \"{{phone_number}}\",\n  \"to_number\": \"{{to_number}}\",\n  \"metadata\": {\n    \"caller_name\": \"Test Caller\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/sessions/create-from-number",
+          "host": ["{{base_url}}"],
+          "path": ["api","v1","sessions","create-from-number"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Simulate Inbound Webhook (Twilio)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+        ],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            { "key": "To", "value": "{{phone_number}}" },
+            { "key": "From", "value": "{{to_number}}" },
+            { "key": "CallSid", "value": "TESTCALLSID123" },
+            { "key": "AccountSid", "value": "AC123" }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/twilio/webhook",
+          "host": ["{{base_url}}"],
+          "path": ["api","v1","twilio","webhook"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Invoke Clover Tool (example)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "{{api_key}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tenant_id\": \"{{tenant_id}}\",\n  \"tool\": \"clover\",\n  \"operation\": \"get_location\",\n  \"params\": {\n    \"location_id\": \"123\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/tools/clover/invoke",
+          "host": ["{{base_url}}"],
+          "path": ["api","v1","tools","clover","invoke"]
+        }
+      },
+      "response": []
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+*.pyo
+*.pyd
+*.so
+*.dll
+*.dylib
+build/
+dist/
+wheels/
+*.egg-info
+*.egg
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Virtual environments
+.venv/
+env/
+venv/
+ENV/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Docker
+.dockerignore
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+# Transcript files
+transcript_*.json
+
+# Node
+node_modules/
+package-lock.json
+
+# Convex
+.convex/
+
+# UV lock file (optional - some prefer to commit this)
+# uv.lock
+
+# Egg info
+voiceagents_gemini.egg-info/
