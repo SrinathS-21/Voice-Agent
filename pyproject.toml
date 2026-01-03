@@ -10,6 +10,7 @@ dependencies = [
     "llama-cloud-services>=0.6.88",
     "llama-parse>=0.6.88",
     "openai>=2.14.0",
+    "twilio>=9.0.0",
 ]
 
 [tool.setuptools.packages.find]
