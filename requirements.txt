@@ -9,8 +9,7 @@ pydantic-settings
 websockets
 httpx
 
-# Voice & Telephony
-deepgram-sdk
+# Telephony
 twilio
 
 # Database

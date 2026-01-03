@@ -52,20 +52,9 @@ class Settings(BaseSettings):
     TWILIO_AUTH_TOKEN: Optional[str] = Field(default=None, description="Twilio auth token")
     TWILIO_PHONE_NUMBER: Optional[str] = Field(default=None, description="Twilio phone number")
     
-    # Legacy - Database connection not used (ConvexDB is primary)
-    # DATABASE_URL: str = Field(...)
-    
     # Convex DB
     CONVEX_URL: str = Field(..., description="Convex Deployment URL")
     CONVEX_DEPLOY_KEY: Optional[str] = Field(default=None, description="Convex Deploy Key (for admin)")
-    
-    # Connection pooling for concurrent calls (Not needed for HTTP client usually, handled by httpx)
-    # DB_POOL_SIZE: int = Field(default=20,...)
-    
-    # Security
-    SECRET_KEY: str = Field(default="your-secret-key-change-in-production", description="Secret key for JWT")
-    ALGORITHM: str = Field(default="HS256", description="JWT algorithm")
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30, description="JWT token expiration")
     
     # CORS
     CORS_ORIGINS: list = Field(
@@ -73,21 +62,12 @@ class Settings(BaseSettings):
         description="Allowed CORS origins"
     )
 
-    # Gemini / LLM
-    GEMINI_API_KEY: Optional[str] = Field(default=None, description="Gemini API key (direct REST)")
-    GEMINI_API_URL: Optional[str] = Field(default=None, description="Gemini API base URL")
-    GEMINI_MAX_OUTPUT_TOKENS: int = Field(default=128, description="Default max output tokens for Gemini generation calls")
-
     # Deepgram speak model (default to Thalia)
     DEEPGRAM_SPEAK_MODEL: str = Field(default="aura-2-thalia-en", description="Deepgram TTS model to use for Speak API")
-    # Maximum characters of assistant text to send to TTS (pre-truncation safety)
-    GEMINI_TTS_MAX_CHARS: int = Field(default=2000, description="Truncate very long assistant outputs to this many chars before TTS")
     
     # Session Management
     SESSION_TTL_SECONDS: int = Field(default=3600, description="Session time-to-live in seconds")
     MAX_SESSIONS_PER_USER: int = Field(default=10, description="Maximum sessions per user")
-    # Persistence
-    PERSIST_SESSIONS: bool = Field(default=False, description="Persist sessions to the database (CallSession table)")
     
     # Logging
     LOG_LEVEL: str = Field(default="INFO", description="Logging level")

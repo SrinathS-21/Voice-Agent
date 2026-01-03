@@ -29,7 +29,7 @@ A production-ready AI voice agent system built with **Deepgram Voice Agent**, **
                                                          │
                                                          ▼
                                                 ┌─────────────────┐
-                                                │   LLM (Gemini)  │
+                                                │  LLM (Groq)     │
                                                 │  Function Calls │
                                                 └─────────────────┘
 ```

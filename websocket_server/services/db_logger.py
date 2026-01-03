@@ -17,11 +17,12 @@ logger = get_logger(__name__)
 class ConversationCollector:
     """Collects conversation data during a call"""
     
-    def __init__(self, session_id: str, phone_number: str = None, call_type: str = "inbound", call_sid: str = None):
+    def __init__(self, session_id: str, phone_number: str = None, call_type: str = "inbound", call_sid: str = None, organization_id: str = None):
         self.session_id = session_id
         self.phone_number = phone_number or "unknown"
         self.call_type = call_type
         self.call_sid = call_sid
+        self.organization_id = organization_id
         self.started_at = datetime.utcnow()
         self.messages: List[Dict] = []
         self.function_calls: List[Dict] = []
@@ -33,6 +34,58 @@ class ConversationCollector:
         # Deepgram/Provider event counters
         self.warnings: int = 0
         self.errors: int = 0
+    
+    def _log_message_to_convex(self, role: str, content: str):
+        """Log message to Convex callInteractions table in real-time"""
+        import asyncio
+        
+        async def _do_log():
+            try:
+                client = get_convex_client()
+                
+                if role == "user":
+                    await client.mutation("callInteractions:logUserMessage", {
+                        "sessionId": self.session_id,
+                        "userInput": content
+                    })
+                elif role == "assistant":
+                    await client.mutation("callInteractions:logAgentResponse", {
+                        "sessionId": self.session_id,
+                        "agentResponse": content
+                    })
+            except Exception as e:
+                logger.warning(f"Failed to log message to Convex: {e}")
+        
+        # Schedule the coroutine to run in the background
+        try:
+            asyncio.create_task(_do_log())
+        except RuntimeError:
+            # No event loop running, skip real-time logging
+            logger.debug("No event loop for real-time message logging")
+    
+    def _log_function_to_convex(self, function_name: str, arguments: Dict, result: Dict):
+        """Log function call to Convex callInteractions table in real-time"""
+        import asyncio
+        
+        async def _do_log():
+            try:
+                client = get_convex_client()
+                
+                await client.mutation("callInteractions:logFunctionCall", {
+                    "sessionId": self.session_id,
+                    "functionName": function_name,
+                    "functionParams": json.dumps(arguments),
+                    "functionResult": json.dumps(result)
+                })
+            except Exception as e:
+                logger.warning(f"Failed to log function call to Convex: {e}")
+        
+        # Schedule the coroutine to run in the background
+        try:
+            asyncio.create_task(_do_log())
+        except RuntimeError:
+            # No event loop running, skip real-time logging
+            logger.debug("No event loop for real-time function logging")
         
     def add_message(self, role: str, content: str):
         """Add a message to the conversation and track response time"""
@@ -51,6 +104,9 @@ class ConversationCollector:
             "role": role,  # 'user' or 'assistant'
             "content": content
         })
+        
+        # Also log to Convex in real-time
+        self._log_message_to_convex(role, content)
     
     def add_function_call(self, function_name: str, arguments: Dict, result: Dict):
         """Add a function call"""
@@ -60,6 +116,9 @@ class ConversationCollector:
             "arguments": arguments,
             "result": result
         })
+        
+        # Also log to Convex in real-time
+        self._log_function_to_convex(function_name, arguments, result)
         
         # If it's an order, track it specially
         if function_name == "place_order" and "order_id" in result:
@@ -137,11 +196,11 @@ class DatabaseLogger:
     _conversations: Dict[str, ConversationCollector] = {}
     
     @classmethod
-    def start_conversation(cls, session_id: str, phone_number: str = None, call_type: str = "inbound", call_sid: str = None) -> ConversationCollector:
+    def start_conversation(cls, session_id: str, phone_number: str = None, call_type: str = "inbound", call_sid: str = None, organization_id: str = None) -> ConversationCollector:
         """Start collecting conversation data"""
-        collector = ConversationCollector(session_id, phone_number, call_type, call_sid)
+        collector = ConversationCollector(session_id, phone_number, call_type, call_sid, organization_id)
         cls._conversations[session_id] = collector
-        logger.info(f"📝 Started conversation collection | session_id={session_id} | call_sid={call_sid} | phone={phone_number} | type={call_type}")
+        logger.info(f"📝 Started conversation collection | session_id={session_id} | call_sid={call_sid} | phone={phone_number} | type={call_type} | org={organization_id}")
         return collector
     
     @classmethod
@@ -215,16 +274,32 @@ class DatabaseLogger:
             audio_quality = max(0.0, min(1.0, base_quality - warn_penalty - error_penalty - latency_penalty))
             user_satisfied = collector.compute_user_satisfied()
 
-            # Save metrics
-            await client.mutation("callMetrics:log", {
-                "sessionId": session_id,
-                "latencyMs": avg_latency or 0.0,
-                "audioQualityScore": audio_quality,
-                "callCompleted": True,
-                "errorsCount": collector.errors,
-                "functionsCalledCount": len(collector.function_calls),
-                "userSatisfied": user_satisfied
-            })
+            # Get organizationId from collector or query session
+            organization_id = collector.organization_id
+            if not organization_id:
+                # Try to get from session if not provided during start
+                try:
+                    session_doc = await client.query("callSessions:getBySessionId", {"sessionId": session_id})
+                    if session_doc:
+                        organization_id = session_doc.get("organizationId")
+                except Exception as e:
+                    logger.warning(f"Could not fetch organizationId for session {session_id}: {e}")
+            
+            # Only save metrics if we have organizationId
+            if organization_id:
+                # Save metrics
+                await client.mutation("callMetrics:log", {
+                    "sessionId": session_id,
+                    "organizationId": organization_id,
+                    "latencyMs": avg_latency or 0.0,
+                    "audioQualityScore": audio_quality,
+                    "callCompleted": True,
+                    "errorsCount": collector.errors,
+                    "functionsCalledCount": len(collector.function_calls),
+                    "userSatisfied": user_satisfied
+                })
+            else:
+                logger.warning(f"⚠️  No organizationId found, skipping callMetrics:log | session_id={session_id}")
             
             # Also update the session status and config (JSON conversation)
             # We need a mutation in callSessions.ts for this. 

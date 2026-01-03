@@ -1,9 +1,21 @@
-import { mutation } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 // ============================================
 // CALL INTERACTIONS - Message and function call logging
 // ============================================
+
+// Get all interactions for a session
+export const getBySessionId = query({
+    args: { sessionId: v.string() },
+    handler: async (ctx, args) => {
+        return await ctx.db
+            .query("callInteractions")
+            .withIndex("by_session_id", (q) => q.eq("sessionId", args.sessionId))
+            .order("asc")
+            .collect();
+    },
+});
 
 // Log a user message
 export const logUserMessage = mutation({

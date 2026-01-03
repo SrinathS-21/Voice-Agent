@@ -13,7 +13,7 @@ from typing import Optional
 from app.core.config import settings
 from app.core.logging import setup_logging, get_logger
 from websocket_server.connection_manager import get_connection_manager
-from websocket_server.services.provider_service import ProviderService
+from websocket_server.services.deepgram_service import DeepgramService
 from websocket_server.handlers.audio_handler import AudioStreamHandler
 from websocket_server.handlers.function_handler import FunctionCallHandler
 from app.session_cache import get_session_cache
@@ -99,11 +99,6 @@ async def handle_call(twilio_ws, path: str):
                     return
 
                     # Determine provider type from config (default to deepgram)
-            try:
-                provider_type = config.get("agent", {}).get("listen", {}).get("provider", {}).get("type", "deepgram")
-            except Exception:
-                provider_type = "deepgram"
-
             # Prepare agent metadata for provider adapters
             agent_metadata = None
             try:
@@ -117,13 +112,12 @@ async def handle_call(twilio_ws, path: str):
             except Exception:
                 agent_metadata = None
 
-            # Connect to the selected provider and enter its async context
+            # Connect to Deepgram Voice Agent
             dg_connect_start = time.time()
-            provider_cm = ProviderService.connect(provider_type, agent_metadata=agent_metadata)
-            async with provider_cm as deepgram_ws:
+            async with DeepgramService.connect(agent_metadata=agent_metadata) as deepgram_ws:
                 dg_connect_time_ms = (time.time() - dg_connect_start) * 1000
-                logger.info(f"Provider connect time: {dg_connect_time_ms:.0f}ms")
-                logger.info("✅ Connected to speech provider")
+                logger.info(f"Deepgram connect time: {dg_connect_time_ms:.0f}ms")
+                logger.info("✅ Connected to Deepgram Voice Agent")
 
                 # Extract organization_id from session details for dynamic function loading
                 organization_id = None
@@ -149,18 +143,14 @@ async def handle_call(twilio_ws, path: str):
                 manager.register_connection(session_id, twilio_ws)
 
                 # Initialize queues
-                # When using Google as the listen provider we need two queues:
-                # one for Deepgram (TTS/agent) and one for Google (ASR).
                 audio_queue = asyncio.Queue()
-                audio_queue_google = None
                 streamsid_queue = asyncio.Queue()
+                call_sid_queue = asyncio.Queue()  # For passing call_sid to hangup handler
 
                 # Send configuration to Deepgram
                 # Ensure the agent config has speak provider for TTS
                 config.setdefault('agent', {})['speak'] = {"provider": {"type": "deepgram", "model": "aura-2-thalia-en"}}
-                # Allow LLM from config.json (Groq for faster responses)
-                # config['agent']['think'] = {"provider": {"type": "google", "model": "gemini-2.5-flash"}}
-                logger.info("Speak and think providers updated in config")
+                logger.info("Deepgram speak provider configured")
                 config_json = json.dumps(config)
                 logger.info(f"Sending config to Deepgram: {config_json[:500]}...")
                 await deepgram_ws.send(config_json)
@@ -175,7 +165,8 @@ async def handle_call(twilio_ws, path: str):
                 # Prepare session metadata for database logging (from session_details)
                 session_metadata = {
                     'phone_number': 'unknown',
-                    'call_type': 'inbound'
+                    'call_type': 'inbound',
+                    'organization_id': organization_id  # Pass organization_id for db_logger
                 }
                 if session_details:
                     # Extract call_type directly
@@ -191,66 +182,30 @@ async def handle_call(twilio_ws, path: str):
                         tenant_id = session_details['business'].get('tenant_id')
                     if tenant_id:
                         session_metadata['tenant_id'] = tenant_id
-                    logger.info(f"Session metadata: phone={session_metadata['phone_number']}, type={session_metadata['call_type']}")
+                    # Also get organizationId from session_details if not already set
+                    if not session_metadata['organization_id']:
+                        session_metadata['organization_id'] = session_details.get('organization_id') or session_details.get('organizationId')
+                    logger.info(f"Session metadata: phone={session_metadata['phone_number']}, type={session_metadata['call_type']}, org={session_metadata['organization_id']}")
 
-                # If the config requests Google as the listen provider, also
-                # open a Google adapter in addition to Deepgram. We will send
-                # audio to both and forward assistant messages from Google to
-                # Deepgram so Deepgram can synthesize TTS audio.
-                listen_provider = config.get("agent", {}).get("listen", {}).get("provider", {})
-                if listen_provider and listen_provider.get("type") == "google":
-                    # Connect Google adapter in parallel with Deepgram
-                    google_cm = ProviderService.connect("google", agent_metadata=agent_metadata)
-                    async with google_cm as google_ws:
-                        # Create a separate audio queue for the Google adapter
-                        audio_queue_google = asyncio.Queue()
-
-                        # Send same config to Google adapter so it can extract audio settings
-                        await google_ws.send(config_json)
-
-                        # Start all handlers including bridge from Google -> Deepgram
-                        await asyncio.gather(
-                            AudioStreamHandler.send_to_deepgram(deepgram_ws, audio_queue),
-                            AudioStreamHandler.send_to_deepgram(google_ws, audio_queue_google),
-                            AudioStreamHandler.deepgram_to_twilio(
-                                deepgram_ws,
-                                twilio_ws,
-                                streamsid_queue,
-                                session_id,
-                                handle_function_call
-                            ),
-                            AudioStreamHandler.google_to_deepgram(
-                                google_ws,
-                                deepgram_ws,
-                                streamsid_queue,
-                                session_id,
-                                handle_function_call
-                            ),
-                            AudioStreamHandler.twilio_to_deepgram(
-                                twilio_ws,
-                                [audio_queue, audio_queue_google],
-                                streamsid_queue,
-                                session_metadata
-                            )
-                        )
-                else:
-                    # Default: single provider (Deepgram)
-                    await asyncio.gather(
-                        AudioStreamHandler.send_to_deepgram(deepgram_ws, audio_queue),
-                        AudioStreamHandler.deepgram_to_twilio(
-                            deepgram_ws,
-                            twilio_ws,
-                            streamsid_queue,
-                            session_id,
-                            handle_function_call
-                        ),
-                        AudioStreamHandler.twilio_to_deepgram(
-                            twilio_ws,
-                            audio_queue,
-                            streamsid_queue,
-                            session_metadata
-                        )
+                # Run Deepgram voice agent pipeline
+                await asyncio.gather(
+                    AudioStreamHandler.send_to_deepgram(deepgram_ws, audio_queue),
+                    AudioStreamHandler.deepgram_to_twilio(
+                        deepgram_ws,
+                        twilio_ws,
+                        streamsid_queue,
+                        session_id,
+                        handle_function_call,
+                        call_sid_queue
+                    ),
+                    AudioStreamHandler.twilio_to_deepgram(
+                        twilio_ws,
+                        audio_queue,
+                        streamsid_queue,
+                        session_metadata,
+                        call_sid_queue
                     )
+                )
  
         
     except Exception as e:

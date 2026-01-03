@@ -206,3 +206,37 @@ export const listByOrganization = query({
             .take(100);
     },
 });
+
+// End call - update session with final data and conversation JSON
+export const endCall = mutation({
+    args: {
+        sessionId: v.string(),
+        durationSeconds: v.number(),
+        endedAt: v.number(),
+        status: v.union(
+            v.literal("completed"),
+            v.literal("failed")
+        ),
+        config: v.optional(v.string()), // Conversation JSON
+    },
+    handler: async (ctx, args) => {
+        const session = await ctx.db
+            .query("callSessions")
+            .withIndex("by_session_id", (q) => q.eq("sessionId", args.sessionId))
+            .unique();
+
+        if (!session) {
+            throw new Error(`Session not found: ${args.sessionId}`);
+        }
+
+        await ctx.db.patch(session._id, {
+            status: args.status,
+            endedAt: args.endedAt,
+            durationSeconds: args.durationSeconds,
+            config: args.config,
+            updatedAt: Date.now(),
+        });
+
+        return { success: true, sessionId: args.sessionId };
+    },
+});

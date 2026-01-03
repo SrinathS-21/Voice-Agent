@@ -8,9 +8,7 @@ that yields an object compatible with the current websocket-based
 usage (supports `await conn.send(...)` and `async for msg in conn`).
 
 The Google adapter here is a scaffold — it provides the required
-interface and queue plumbing. We'll replace the scaffold internals
-with real Google Speech-to-Text (streaming) + Vertex AI (Gemini)
-integration next.
+interface and queue plumbing. Uses Groq (Llama) for LLM inference.
 """
 
 from app.core.logging import get_logger
